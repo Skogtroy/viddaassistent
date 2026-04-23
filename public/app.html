@@ -723,6 +723,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     } catch(e) { /* server ikke tilgjengelig */ }
   }
   document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  setDate();
+  renderFlokklogg();
+  applyDark();
 });
 
 function checkPaymentReturn() {
@@ -1180,129 +1183,15 @@ async function doReset() {
 }
 
 
-// ── DARK MODE ──
-let darkMode = localStorage.getItem('va_dark') === 'true';
-function applyDark() {
-  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
-  const btn = document.getElementById('dark-toggle');
-  if (btn) btn.textContent = darkMode ? '☀️ Lys modus' : '🌙 Mørk modus';
-}
-function toggleDark() { darkMode = !darkMode; localStorage.setItem('va_dark', darkMode); applyDark(); }
-applyDark();
-
-// ── OFFLINE ──
-let isOnline = navigator.onLine;
-window.addEventListener('online', () => { isOnline = true; });
-window.addEventListener('offline', () => { isOnline = false; toast('⚡ Frakoblet – viser lagrede data'); });
-
-// ── FLOKKLOGG ──
-let flokklogg = JSON.parse(localStorage.getItem('va_flokklogg') || '[]');
-const TYPE_LABELS = {flytting:'Flokkflytting',beite:'Beiteobservasjon',kalving:'Kalving',merking:'Kalvemerking',slakt:'Slakt',skade:'Skade/tap',rovdyr:'Rovdyrangrep',annet:'Annet'};
-
-function setDate() { const d=document.getElementById('fl-date'); if(d) d.value=new Date().toISOString().split('T')[0]; }
-
-function saveFlokklogg() {
-  const date=document.getElementById('fl-date')?.value, loc=document.getElementById('fl-loc')?.value.trim(),
-    count=document.getElementById('fl-count')?.value, type=document.getElementById('fl-type')?.value,
-    note=document.getElementById('fl-note')?.value.trim();
-  if (!date||!loc) { toast('Fyll inn dato og lokasjon'); return; }
-  flokklogg.unshift({id:Date.now(),date,loc,count:parseInt(count)||0,type,note,created:new Date().toISOString()});
-  localStorage.setItem('va_flokklogg', JSON.stringify(flokklogg));
-  document.getElementById('fl-loc').value=''; document.getElementById('fl-count').value=''; document.getElementById('fl-note').value='';
-  setDate(); renderFlokklogg(); toast('Registrering lagret ✓');
-}
-
-function deleteFlokklogg(id) {
-  flokklogg=flokklogg.filter(e=>e.id!==id);
-  localStorage.setItem('va_flokklogg',JSON.stringify(flokklogg));
-  renderFlokklogg();
-}
-
-function renderFlokklogg() {
-  const el=document.getElementById('flogg-entries'), lbl=document.getElementById('fl-count-label');
-  if(lbl) lbl.textContent=flokklogg.length+' registreringer';
-  if(!el) return;
-  if(!flokklogg.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-style:italic">Ingen registreringer ennå.</div>';return;}
-  el.innerHTML=flokklogg.map(e=>`<div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);background:var(--surface,white)">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.3rem">
-      <div>
-        <div style="font-size:0.88rem;color:var(--text)">${e.loc}</div>
-        <div style="font-size:0.72rem;color:var(--muted)">${e.date} · ${TYPE_LABELS[e.type]||e.type}${e.count?' · 🦌 '+e.count+' dyr':''}</div>
-      </div>
-      <button onclick="deleteFlokklogg(${e.id})" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:0.75rem">Slett</button>
-    </div>
-    ${e.note?`<div style="font-size:0.82rem;color:var(--muted);font-style:italic">${e.note}</div>`:''}
-  </div>`).join('');
-}
-
-// ── SNOW CONDITIONS ──
-function getSnowConditions(temp, precip) {
-  let depth,density,ice,advice;
-  if(temp<-15){density='Pulversnø';ice='Lav';advice='Pulversnø – reinen graver lett. Gode beiteforhold.';}
-  else if(temp<-5){density='Fast snø';ice='Middels';advice='Fast snø. Sjekk om reinen klarer å grave. Beite kan være utilgjengelig under ishatt.';}
-  else if(temp<0){density='Våt snø';ice='Høy risiko';advice='⚠ Temperatur nær null – høy risiko for islagt beite. Vurder tilleggsfôring.';}
-  else{density='Smelting';ice='Kritisk';advice='⚠ Smelting/frysing gir is. Kritiske beiteforhold. Flytt flokken til høyereliggende terreng.';}
-  depth=precip>5?'>10 cm natt':precip>1?'2–5 cm natt':'Lite nysnø';
-  const sd=document.getElementById('s-depth'),ss=document.getElementById('s-density'),si=document.getElementById('s-ice'),sa=document.getElementById('s-advice');
-  if(sd)sd.textContent=depth; if(ss)ss.textContent=density; if(si)si.textContent=ice; if(sa)sa.textContent=advice;
-}
-
-// ── EXPORT PDF ──
-function exportPDF() {
-  if(!flokklogg.length){toast('Ingen data å eksportere');return;}
-  const rows=flokklogg.map(e=>`<tr><td>${e.date}</td><td>${e.loc}</td><td>${TYPE_LABELS[e.type]||e.type}</td><td>${e.count||'—'}</td><td>${e.note||'—'}</td></tr>`).join('');
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Flokklogg – ViddaAssistent</title>
-  <style>body{font-family:Georgia,serif;max-width:900px;margin:2cm auto;color:#2A2A22}h1{font-size:1.8rem;margin-bottom:0.3rem}p{color:#6B6555;font-size:0.9rem;margin-bottom:2rem}table{width:100%;border-collapse:collapse;font-size:0.85rem}th{background:#1C2B1A;color:white;padding:0.6rem 0.8rem;text-align:left;font-weight:400}td{padding:0.6rem 0.8rem;border-bottom:1px solid #E8E2D4}tr:nth-child(even) td{background:#F5F2ED}.footer{margin-top:2rem;font-size:0.75rem;color:#9A9182;border-top:1px solid #E8E2D4;padding-top:1rem}</style>
-  </head><body><h1>Flokklogg – ViddaAssistent</h1><p>Eksportert ${new Date().toLocaleDateString('no-NO')} · ${flokklogg.length} registreringer</p>
-  <table><thead><tr><th>Dato</th><th>Lokasjon</th><th>Hendelse</th><th>Antall dyr</th><th>Notat</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="footer">ViddaAssistent – AI-hjelper for reindrift i Finnmark og Troms</div></body></html>`;
-  const w=window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),500);
-}
-
-// Hook into existing handleAuthSuccess to init flokklogg
-const _origHandleAuth = handleAuthSuccess;
 
 </script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script>
 // ── GLEMT PASSORD ──
-function showForgot() {
-  document.getElementById('form-login').style.display = 'none';
-  document.getElementById('form-register').style.display = 'none';
-  document.getElementById('form-forgot').style.display = 'block';
-  document.getElementById('tab-login').classList.remove('active');
-  document.getElementById('tab-register').classList.remove('active');
-}
-function showLogin() {
-  document.getElementById('form-forgot').style.display = 'none';
-  document.getElementById('form-login').style.display = 'block';
-  document.getElementById('tab-login').classList.add('active');
-}
-async function doForgot() {
-  const email = document.getElementById('f-email').value.trim();
-  const err = document.getElementById('f-err');
-  const ok = document.getElementById('f-ok');
-  err.style.display = 'none'; ok.style.display = 'none';
-  if (!email) { err.textContent = 'Skriv inn e-post'; err.style.display = 'block'; return; }
-  try {
-    await fetch(`${API}/api/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-    ok.textContent = 'Kode sendt! Sjekk e-posten din.'; ok.style.display = 'block';
-  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
-}
-async function doReset() {
-  const email = document.getElementById('f-email').value.trim();
-  const code = document.getElementById('f-code').value.trim();
-  const newPassword = document.getElementById('f-newpass').value;
-  const err = document.getElementById('f-reset-err');
-  const ok = document.getElementById('f-reset-ok');
-  err.style.display = 'none'; ok.style.display = 'none';
-  try {
-    const res = await fetch(`${API}/api/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, newPassword }) });
-    const data = await res.json();
-    if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
-    ok.textContent = 'Passord oppdatert! Logger inn…'; ok.style.display = 'block';
-    setTimeout(() => { document.getElementById('l-email').value = email; showLogin(); }, 1500);
-  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
-}
+
+
+async 
+async 
 
 
 // ── DARK MODE ──
