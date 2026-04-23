@@ -217,6 +217,31 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
       <input class="login-input" id="l-pass" type="password" placeholder="••••••••">
       <div class="login-err" id="l-err"></div>
       <button class="login-btn" id="l-btn" onclick="doLogin()">Logg inn</button>
+      <div style="text-align:center;margin-top:1rem">
+        <a href="#" onclick="showForgot()" style="font-size:0.78rem;color:rgba(245,242,237,0.35);text-decoration:none;transition:color 0.2s" onmouseover="this.style.color='var(--frost)'" onmouseout="this.style.color='rgba(245,242,237,0.35)'">Glemt passord?</a>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div id="form-forgot" style="display:none">
+      <div style="font-size:0.82rem;color:rgba(245,242,237,0.45);margin-bottom:1.5rem;font-weight:300">Skriv inn e-posten din så sender vi en kode.</div>
+      <label class="login-label">E-post</label>
+      <input class="login-input" id="f-email" type="email" placeholder="din@epost.no">
+      <div class="login-err" id="f-err"></div>
+      <div class="login-ok" id="f-ok"></div>
+      <button class="login-btn" onclick="doForgot()">Send kode</button>
+      <div style="margin-top:1.5rem;border-top:1px solid rgba(139,168,164,0.15);padding-top:1.5rem">
+        <label class="login-label">Kode fra e-post</label>
+        <input class="login-input" id="f-code" type="text" placeholder="123456" maxlength="6">
+        <label class="login-label">Nytt passord</label>
+        <input class="login-input" id="f-newpass" type="password" placeholder="Minst 6 tegn">
+        <div class="login-err" id="f-reset-err"></div>
+        <div class="login-ok" id="f-reset-ok"></div>
+        <button class="login-btn" onclick="doReset()">Lagre nytt passord</button>
+      </div>
+      <div style="text-align:center;margin-top:1rem">
+        <a href="#" onclick="showLogin()" style="font-size:0.78rem;color:rgba(245,242,237,0.35);text-decoration:none" onmouseover="this.style.color='var(--frost)'" onmouseout="this.style.color='rgba(245,242,237,0.35)'">← Tilbake til innlogging</a>
+      </div>
     </div>
 
     <!-- REGISTER FORM -->
@@ -950,7 +975,89 @@ function toggleMapGPS() {
   }, { enableHighAccuracy: true, maximumAge: 5000 });
 }
 
+
+// ── GLEMT PASSORD ──
+function showForgot() {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.getElementById('form-forgot').style.display = 'block';
+  document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('tab-register').classList.remove('active');
+}
+function showLogin() {
+  document.getElementById('form-forgot').style.display = 'none';
+  document.getElementById('form-login').style.display = 'block';
+  document.getElementById('tab-login').classList.add('active');
+}
+async function doForgot() {
+  const email = document.getElementById('f-email').value.trim();
+  const err = document.getElementById('f-err');
+  const ok = document.getElementById('f-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!email) { err.textContent = 'Skriv inn e-post'; err.style.display = 'block'; return; }
+  try {
+    await fetch(`${API}/api/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    ok.textContent = 'Kode sendt! Sjekk e-posten din.'; ok.style.display = 'block';
+  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
+}
+async function doReset() {
+  const email = document.getElementById('f-email').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  const newPassword = document.getElementById('f-newpass').value;
+  const err = document.getElementById('f-reset-err');
+  const ok = document.getElementById('f-reset-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+  try {
+    const res = await fetch(`${API}/api/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, newPassword }) });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
+    ok.textContent = 'Passord oppdatert! Logger inn…'; ok.style.display = 'block';
+    setTimeout(() => { document.getElementById('l-email').value = email; showLogin(); }, 1500);
+  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
+}
+
 </script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js">
+// ── GLEMT PASSORD ──
+function showForgot() {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.getElementById('form-forgot').style.display = 'block';
+  document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('tab-register').classList.remove('active');
+}
+function showLogin() {
+  document.getElementById('form-forgot').style.display = 'none';
+  document.getElementById('form-login').style.display = 'block';
+  document.getElementById('tab-login').classList.add('active');
+}
+async function doForgot() {
+  const email = document.getElementById('f-email').value.trim();
+  const err = document.getElementById('f-err');
+  const ok = document.getElementById('f-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!email) { err.textContent = 'Skriv inn e-post'; err.style.display = 'block'; return; }
+  try {
+    await fetch(`${API}/api/forgot-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    ok.textContent = 'Kode sendt! Sjekk e-posten din.'; ok.style.display = 'block';
+  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
+}
+async function doReset() {
+  const email = document.getElementById('f-email').value.trim();
+  const code = document.getElementById('f-code').value.trim();
+  const newPassword = document.getElementById('f-newpass').value;
+  const err = document.getElementById('f-reset-err');
+  const ok = document.getElementById('f-reset-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+  try {
+    const res = await fetch(`${API}/api/reset-password`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code, newPassword }) });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
+    ok.textContent = 'Passord oppdatert! Logger inn…'; ok.style.display = 'block';
+    setTimeout(() => { document.getElementById('l-email').value = email; showLogin(); }, 1500);
+  } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
+}
+
+</script>
 </body>
 </html>
