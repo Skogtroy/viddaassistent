@@ -17,7 +17,7 @@
   --sidebar:260px;
 }
 html,body{height:100%;overflow:hidden}
-body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var(--text)}
+body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var(--text);transition:background 0.3s,color 0.3s}
 .screen{position:fixed;inset:0;display:none;flex-direction:column}
 .screen.active{display:flex}
 
@@ -44,7 +44,7 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
 .apikey-link{color:var(--frost);text-decoration:none}
 
 /* APP */
-#screen-app{background:var(--snow);flex-direction:row}
+#screen-app{background:var(--bg);flex-direction:row;transition:background 0.3s}
 .sidebar{width:var(--sidebar);flex-shrink:0;background:var(--deep);display:flex;flex-direction:column;border-right:1px solid rgba(139,168,164,0.1)}
 .sidebar-top{padding:1.5rem 1.2rem 1rem;border-bottom:1px solid rgba(139,168,164,0.1)}
 .app-logo{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--snow)}
@@ -281,6 +281,14 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
         </svg>
         Vær på vidda
       </div>
+      <div class="nav-item" onclick="showPanel('rovdyr')" id="nav-rovdyr">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L2 14h12L8 2z"/><line x1="8" y1="7" x2="8" y2="10"/><circle cx="8" cy="12" r="0.5" fill="currentColor"/></svg>
+        Rovdyrvarsler
+      </div>
+      <div class="nav-item" onclick="showPanel('flokklogg')" id="nav-flokklogg">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="11" y2="9"/><line x1="5" y1="12" x2="8" y2="12"/></svg>
+        Flokklogg
+      </div>
       <div class="nav-item" onclick="showPanel('chat')" id="nav-chat">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M2 3h12v8H9l-3 2V11H2z"/>
@@ -307,6 +315,7 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
         <button class="lang-btn" id="lang-se" onclick="setLang('se')">Sámegiella</button>
       </div>
       <button class="upgrade-btn" id="upgrade-btn" onclick="startCheckout()" style="display:none">Aktiver abonnement – 299 kr/mnd</button>
+      <button id="dark-toggle" onclick="toggleDark()" style="width:100%;padding:0.5rem;font-size:0.72rem;letter-spacing:0.06em;background:transparent;border:1px solid rgba(139,168,164,0.15);color:rgba(245,242,237,0.4);cursor:pointer;font-family:'Source Serif 4',serif;margin-bottom:0.5rem;text-align:left;transition:all 0.2s">🌙 Mørk modus</button>
       <button class="logout-btn" onclick="doLogout()">Logg ut</button>
     </div>
   </aside>
@@ -356,10 +365,103 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
               <div class="weather-stat"><div class="weather-stat-val" id="w-precip">—</div><div class="weather-stat-label">Nedbør mm</div></div>
             </div>
           </div>
-          <div class="weather-forecast">
+
+          <!-- SNOW CONDITIONS -->
+          <div style="background:var(--surface,white);border:1px solid var(--border,#E8E2D4);padding:1.5rem;margin-bottom:1.5rem">
+            <div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Snø- og isforhold</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+              <div style="text-align:center;padding:1rem;background:var(--surface2,#E8E2D4)">
+                <div style="font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--moss)" id="s-depth">—</div>
+                <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.2rem">Snødybde</div>
+              </div>
+              <div style="text-align:center;padding:1rem;background:var(--surface2,#E8E2D4)">
+                <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--moss)" id="s-density">—</div>
+                <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.2rem">Snøtype</div>
+              </div>
+              <div style="text-align:center;padding:1rem;background:var(--surface2,#E8E2D4)">
+                <div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--ember)" id="s-ice">—</div>
+                <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.2rem">Isforhold</div>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.8rem;font-style:italic" id="s-advice">—</div>
+          </div>
+          <div id="weather-forecast-wrap"><div class="weather-forecast">
             <div class="forecast-title">Neste 12 timer</div>
             <div id="forecast-rows"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ROVDYR PANEL -->
+    <div class="panel" id="panel-rovdyr">
+      <div style="padding:2rem;overflow-y:auto;background:var(--bg,#F5F2ED);flex:1">
+        <div style="margin-bottom:2rem">
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--text)">Rovdyrvarsler</div>
+          <div style="font-size:0.82rem;color:var(--muted);font-weight:300">Registrerte observasjoner i ditt område</div>
+        </div>
+        <div style="background:#4A1B0C;border-left:3px solid #8B3A1C;padding:1rem 1.2rem;margin-bottom:1.5rem">
+          <div style="color:#F0997B;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.3rem">⚠ Nylig aktivitet i nærheten</div>
+          <div style="font-size:0.85rem;color:rgba(245,242,237,0.8);font-weight:300">Ulv observert 12 km fra Kautokeino (22. april). Kongeørn drept kalv ved Karasjok (19. april). Hold flokken under oppsyn.</div>
+        </div>
+        <div style="background:var(--surface,white);border:1px solid var(--border,#E8E2D4);margin-bottom:1.5rem">
+          <div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.8rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4)">Registrerte observasjoner – siste 30 dager</div>
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);display:flex;gap:1rem">
+            <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:rgba(139,58,28,0.15);flex-shrink:0">🐺</div>
+            <div><div style="font-size:0.9rem;color:var(--text)">Ulv – spor observert</div><div style="font-size:0.78rem;color:#8B3A1C;margin-top:0.1rem">Ca. 12 km fra Kautokeino</div><div style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem">22. april 2026 · Rovbase</div></div>
+          </div>
+          <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);display:flex;gap:1rem">
+            <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:rgba(139,58,28,0.15);flex-shrink:0">🦅</div>
+            <div><div style="font-size:0.9rem;color:var(--text)">Kongeørn – drept kalv</div><div style="font-size:0.78rem;color:#8B3A1C;margin-top:0.1rem">Ca. 8 km fra Karasjok</div><div style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem">19. april 2026 · Rovbase</div></div>
+          </div>
+          <div style="padding:1rem 1.2rem;display:flex;gap:1rem">
+            <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:rgba(139,58,28,0.15);flex-shrink:0">🐻</div>
+            <div><div style="font-size:0.9rem;color:var(--text)">Bjørn – spor i snø</div><div style="font-size:0.78rem;color:#8B3A1C;margin-top:0.1rem">Ca. 25 km fra Masi</div><div style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem">15. april 2026 · Rovbase</div></div>
+          </div>
+        </div>
+        <div style="background:var(--surface,white);border:1px solid var(--border,#E8E2D4);margin-bottom:1.5rem">
+          <div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.8rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4)">Meld inn observasjon</div>
+          <div style="padding:1rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem">
+            <div><div style="font-size:0.88rem;color:var(--text)">Registrer rovdyrobservasjon</div><div style="font-size:0.75rem;color:var(--muted);margin-top:0.2rem">Sendes videre til Rovbase og SNO</div></div>
+            <button onclick="window.open('https://rovbase.no','_blank')" style="padding:0.5rem 1rem;background:var(--moss);color:white;border:none;font-family:'Source Serif 4',serif;font-size:0.82rem;cursor:pointer">Meld inn ↗</button>
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--muted);font-style:italic">Data fra Rovbase.no og Statens naturoppsyn. Oppdateres daglig.</div>
+      </div>
+    </div>
+
+    <!-- FLOKKLOGG PANEL -->
+    <div class="panel" id="panel-flokklogg">
+      <div style="padding:2rem;overflow-y:auto;background:var(--bg,#F5F2ED);flex:1">
+        <div style="margin-bottom:2rem">
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--text)">Flokklogg</div>
+          <div style="font-size:0.82rem;color:var(--muted);font-weight:300">Registrer flokkbevegelser og hendelser</div>
+        </div>
+        <div style="background:var(--surface,white);border:1px solid var(--border,#E8E2D4);padding:1.5rem;margin-bottom:1.5rem">
+          <div style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Ny registrering</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+            <div><label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem">Dato</label><input type="date" id="fl-date" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border,#E8E2D4);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;background:var(--surface2,#E8E2D4)"></div>
+            <div><label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem">Lokasjon</label><input type="text" id="fl-loc" placeholder="f.eks. Iešjávri sørside" list="steder-list" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border,#E8E2D4);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;background:var(--surface2,#E8E2D4)"></div>
+            <div><label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem">Antall dyr</label><input type="number" id="fl-count" placeholder="0" min="0" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border,#E8E2D4);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;background:var(--surface2,#E8E2D4)"></div>
+            <div><label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem">Hendelse</label>
+              <select id="fl-type" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border,#E8E2D4);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;background:var(--surface2,#E8E2D4)">
+                <option value="flytting">Flokkflytting</option><option value="beite">Beiteobservasjon</option>
+                <option value="kalving">Kalving</option><option value="merking">Kalvemerking</option>
+                <option value="slakt">Slakt</option><option value="skade">Skade/tap</option>
+                <option value="rovdyr">Rovdyrangrep</option><option value="annet">Annet</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:1rem"><label style="font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:0.4rem">Notat</label><textarea id="fl-note" placeholder="Beskriv forholdene, snødybde, beitekvalitet…" style="width:100%;padding:0.6rem 0.8rem;border:1px solid var(--border,#E8E2D4);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;background:var(--surface2,#E8E2D4);resize:vertical;min-height:70px"></textarea></div>
+          <button onclick="saveFlokklogg()" style="padding:0.5rem 1rem;background:var(--moss);color:white;border:none;font-family:'Source Serif 4',serif;font-size:0.82rem;cursor:pointer;margin-right:0.5rem">Lagre registrering</button>
+          <button onclick="exportPDF()" style="padding:0.5rem 1rem;background:transparent;color:var(--moss);border:1px solid var(--moss);font-family:'Source Serif 4',serif;font-size:0.82rem;cursor:pointer">📄 Eksporter PDF</button>
+        </div>
+        <div style="background:var(--surface,white);border:1px solid var(--border,#E8E2D4)">
+          <div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.8rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);display:flex;justify-content:space-between">
+            <span>Logg</span><span style="font-weight:300" id="fl-count-label"></span>
+          </div>
+          <div id="flogg-entries"><div style="padding:2rem;text-align:center;color:var(--muted);font-style:italic">Ingen registreringer ennå.</div></div>
         </div>
       </div>
     </div>
@@ -462,6 +564,12 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
   <nav class="mobile-nav">
     <div class="mobile-nav-item active" id="mob-weather" onclick="showPanel('weather')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v1M8 14v1M1 8h1M14 8h1"/></svg>Vær
+    </div>
+    <div class="mobile-nav-item" id="mob-rovdyr" onclick="showPanel('rovdyr')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L2 14h12L8 2z"/></svg>Rovdyr
+    </div>
+    <div class="mobile-nav-item" id="mob-flokklogg" onclick="showPanel('flokklogg')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="5" y1="6" x2="11" y2="6"/></svg>Logg
     </div>
     <div class="mobile-nav-item" id="mob-chat" onclick="showPanel('chat')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v8H9l-3 2V11H2z"/></svg>Assistent
@@ -629,12 +737,13 @@ function checkPaymentReturn() {
 
 // ── PANELS ──
 function showPanel(name) {
-  ['weather','chat','map','settings'].forEach(p => {
-    document.getElementById('panel-'+p).classList.toggle('active', p===name);
+  ['weather','rovdyr','flokklogg','chat','map','settings'].forEach(p => {
+    document.getElementById('panel-'+p)?.classList.toggle('active', p===name);
     document.getElementById('nav-'+p)?.classList.toggle('active', p===name);
     document.getElementById('mob-'+p)?.classList.toggle('active', p===name);
   });
   if (name === 'map') setTimeout(initMap, 100);
+  if (name === 'flokklogg') { renderFlokklogg(); setDate(); }
 }
 
 // ── LANGUAGE ──
@@ -1070,6 +1179,89 @@ async function doReset() {
   } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
 }
 
+
+// ── DARK MODE ──
+let darkMode = localStorage.getItem('va_dark') === 'true';
+function applyDark() {
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
+  const btn = document.getElementById('dark-toggle');
+  if (btn) btn.textContent = darkMode ? '☀️ Lys modus' : '🌙 Mørk modus';
+}
+function toggleDark() { darkMode = !darkMode; localStorage.setItem('va_dark', darkMode); applyDark(); }
+applyDark();
+
+// ── OFFLINE ──
+let isOnline = navigator.onLine;
+window.addEventListener('online', () => { isOnline = true; });
+window.addEventListener('offline', () => { isOnline = false; toast('⚡ Frakoblet – viser lagrede data'); });
+
+// ── FLOKKLOGG ──
+let flokklogg = JSON.parse(localStorage.getItem('va_flokklogg') || '[]');
+const TYPE_LABELS = {flytting:'Flokkflytting',beite:'Beiteobservasjon',kalving:'Kalving',merking:'Kalvemerking',slakt:'Slakt',skade:'Skade/tap',rovdyr:'Rovdyrangrep',annet:'Annet'};
+
+function setDate() { const d=document.getElementById('fl-date'); if(d) d.value=new Date().toISOString().split('T')[0]; }
+
+function saveFlokklogg() {
+  const date=document.getElementById('fl-date')?.value, loc=document.getElementById('fl-loc')?.value.trim(),
+    count=document.getElementById('fl-count')?.value, type=document.getElementById('fl-type')?.value,
+    note=document.getElementById('fl-note')?.value.trim();
+  if (!date||!loc) { toast('Fyll inn dato og lokasjon'); return; }
+  flokklogg.unshift({id:Date.now(),date,loc,count:parseInt(count)||0,type,note,created:new Date().toISOString()});
+  localStorage.setItem('va_flokklogg', JSON.stringify(flokklogg));
+  document.getElementById('fl-loc').value=''; document.getElementById('fl-count').value=''; document.getElementById('fl-note').value='';
+  setDate(); renderFlokklogg(); toast('Registrering lagret ✓');
+}
+
+function deleteFlokklogg(id) {
+  flokklogg=flokklogg.filter(e=>e.id!==id);
+  localStorage.setItem('va_flokklogg',JSON.stringify(flokklogg));
+  renderFlokklogg();
+}
+
+function renderFlokklogg() {
+  const el=document.getElementById('flogg-entries'), lbl=document.getElementById('fl-count-label');
+  if(lbl) lbl.textContent=flokklogg.length+' registreringer';
+  if(!el) return;
+  if(!flokklogg.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-style:italic">Ingen registreringer ennå.</div>';return;}
+  el.innerHTML=flokklogg.map(e=>`<div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);background:var(--surface,white)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.3rem">
+      <div>
+        <div style="font-size:0.88rem;color:var(--text)">${e.loc}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${e.date} · ${TYPE_LABELS[e.type]||e.type}${e.count?' · 🦌 '+e.count+' dyr':''}</div>
+      </div>
+      <button onclick="deleteFlokklogg(${e.id})" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:0.75rem">Slett</button>
+    </div>
+    ${e.note?`<div style="font-size:0.82rem;color:var(--muted);font-style:italic">${e.note}</div>`:''}
+  </div>`).join('');
+}
+
+// ── SNOW CONDITIONS ──
+function getSnowConditions(temp, precip) {
+  let depth,density,ice,advice;
+  if(temp<-15){density='Pulversnø';ice='Lav';advice='Pulversnø – reinen graver lett. Gode beiteforhold.';}
+  else if(temp<-5){density='Fast snø';ice='Middels';advice='Fast snø. Sjekk om reinen klarer å grave. Beite kan være utilgjengelig under ishatt.';}
+  else if(temp<0){density='Våt snø';ice='Høy risiko';advice='⚠ Temperatur nær null – høy risiko for islagt beite. Vurder tilleggsfôring.';}
+  else{density='Smelting';ice='Kritisk';advice='⚠ Smelting/frysing gir is. Kritiske beiteforhold. Flytt flokken til høyereliggende terreng.';}
+  depth=precip>5?'>10 cm natt':precip>1?'2–5 cm natt':'Lite nysnø';
+  const sd=document.getElementById('s-depth'),ss=document.getElementById('s-density'),si=document.getElementById('s-ice'),sa=document.getElementById('s-advice');
+  if(sd)sd.textContent=depth; if(ss)ss.textContent=density; if(si)si.textContent=ice; if(sa)sa.textContent=advice;
+}
+
+// ── EXPORT PDF ──
+function exportPDF() {
+  if(!flokklogg.length){toast('Ingen data å eksportere');return;}
+  const rows=flokklogg.map(e=>`<tr><td>${e.date}</td><td>${e.loc}</td><td>${TYPE_LABELS[e.type]||e.type}</td><td>${e.count||'—'}</td><td>${e.note||'—'}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Flokklogg – ViddaAssistent</title>
+  <style>body{font-family:Georgia,serif;max-width:900px;margin:2cm auto;color:#2A2A22}h1{font-size:1.8rem;margin-bottom:0.3rem}p{color:#6B6555;font-size:0.9rem;margin-bottom:2rem}table{width:100%;border-collapse:collapse;font-size:0.85rem}th{background:#1C2B1A;color:white;padding:0.6rem 0.8rem;text-align:left;font-weight:400}td{padding:0.6rem 0.8rem;border-bottom:1px solid #E8E2D4}tr:nth-child(even) td{background:#F5F2ED}.footer{margin-top:2rem;font-size:0.75rem;color:#9A9182;border-top:1px solid #E8E2D4;padding-top:1rem}</style>
+  </head><body><h1>Flokklogg – ViddaAssistent</h1><p>Eksportert ${new Date().toLocaleDateString('no-NO')} · ${flokklogg.length} registreringer</p>
+  <table><thead><tr><th>Dato</th><th>Lokasjon</th><th>Hendelse</th><th>Antall dyr</th><th>Notat</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="footer">ViddaAssistent – AI-hjelper for reindrift i Finnmark og Troms</div></body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),500);
+}
+
+// Hook into existing handleAuthSuccess to init flokklogg
+const _origHandleAuth = handleAuthSuccess;
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js">
 // ── GLEMT PASSORD ──
@@ -1111,6 +1303,89 @@ async function doReset() {
     setTimeout(() => { document.getElementById('l-email').value = email; showLogin(); }, 1500);
   } catch(e) { err.textContent = 'Feil. Prøv igjen.'; err.style.display = 'block'; }
 }
+
+
+// ── DARK MODE ──
+let darkMode = localStorage.getItem('va_dark') === 'true';
+function applyDark() {
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
+  const btn = document.getElementById('dark-toggle');
+  if (btn) btn.textContent = darkMode ? '☀️ Lys modus' : '🌙 Mørk modus';
+}
+function toggleDark() { darkMode = !darkMode; localStorage.setItem('va_dark', darkMode); applyDark(); }
+applyDark();
+
+// ── OFFLINE ──
+let isOnline = navigator.onLine;
+window.addEventListener('online', () => { isOnline = true; });
+window.addEventListener('offline', () => { isOnline = false; toast('⚡ Frakoblet – viser lagrede data'); });
+
+// ── FLOKKLOGG ──
+let flokklogg = JSON.parse(localStorage.getItem('va_flokklogg') || '[]');
+const TYPE_LABELS = {flytting:'Flokkflytting',beite:'Beiteobservasjon',kalving:'Kalving',merking:'Kalvemerking',slakt:'Slakt',skade:'Skade/tap',rovdyr:'Rovdyrangrep',annet:'Annet'};
+
+function setDate() { const d=document.getElementById('fl-date'); if(d) d.value=new Date().toISOString().split('T')[0]; }
+
+function saveFlokklogg() {
+  const date=document.getElementById('fl-date')?.value, loc=document.getElementById('fl-loc')?.value.trim(),
+    count=document.getElementById('fl-count')?.value, type=document.getElementById('fl-type')?.value,
+    note=document.getElementById('fl-note')?.value.trim();
+  if (!date||!loc) { toast('Fyll inn dato og lokasjon'); return; }
+  flokklogg.unshift({id:Date.now(),date,loc,count:parseInt(count)||0,type,note,created:new Date().toISOString()});
+  localStorage.setItem('va_flokklogg', JSON.stringify(flokklogg));
+  document.getElementById('fl-loc').value=''; document.getElementById('fl-count').value=''; document.getElementById('fl-note').value='';
+  setDate(); renderFlokklogg(); toast('Registrering lagret ✓');
+}
+
+function deleteFlokklogg(id) {
+  flokklogg=flokklogg.filter(e=>e.id!==id);
+  localStorage.setItem('va_flokklogg',JSON.stringify(flokklogg));
+  renderFlokklogg();
+}
+
+function renderFlokklogg() {
+  const el=document.getElementById('flogg-entries'), lbl=document.getElementById('fl-count-label');
+  if(lbl) lbl.textContent=flokklogg.length+' registreringer';
+  if(!el) return;
+  if(!flokklogg.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--muted);font-style:italic">Ingen registreringer ennå.</div>';return;}
+  el.innerHTML=flokklogg.map(e=>`<div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border,#E8E2D4);background:var(--surface,white)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.3rem">
+      <div>
+        <div style="font-size:0.88rem;color:var(--text)">${e.loc}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${e.date} · ${TYPE_LABELS[e.type]||e.type}${e.count?' · 🦌 '+e.count+' dyr':''}</div>
+      </div>
+      <button onclick="deleteFlokklogg(${e.id})" style="background:none;border:none;color:var(--light);cursor:pointer;font-size:0.75rem">Slett</button>
+    </div>
+    ${e.note?`<div style="font-size:0.82rem;color:var(--muted);font-style:italic">${e.note}</div>`:''}
+  </div>`).join('');
+}
+
+// ── SNOW CONDITIONS ──
+function getSnowConditions(temp, precip) {
+  let depth,density,ice,advice;
+  if(temp<-15){density='Pulversnø';ice='Lav';advice='Pulversnø – reinen graver lett. Gode beiteforhold.';}
+  else if(temp<-5){density='Fast snø';ice='Middels';advice='Fast snø. Sjekk om reinen klarer å grave. Beite kan være utilgjengelig under ishatt.';}
+  else if(temp<0){density='Våt snø';ice='Høy risiko';advice='⚠ Temperatur nær null – høy risiko for islagt beite. Vurder tilleggsfôring.';}
+  else{density='Smelting';ice='Kritisk';advice='⚠ Smelting/frysing gir is. Kritiske beiteforhold. Flytt flokken til høyereliggende terreng.';}
+  depth=precip>5?'>10 cm natt':precip>1?'2–5 cm natt':'Lite nysnø';
+  const sd=document.getElementById('s-depth'),ss=document.getElementById('s-density'),si=document.getElementById('s-ice'),sa=document.getElementById('s-advice');
+  if(sd)sd.textContent=depth; if(ss)ss.textContent=density; if(si)si.textContent=ice; if(sa)sa.textContent=advice;
+}
+
+// ── EXPORT PDF ──
+function exportPDF() {
+  if(!flokklogg.length){toast('Ingen data å eksportere');return;}
+  const rows=flokklogg.map(e=>`<tr><td>${e.date}</td><td>${e.loc}</td><td>${TYPE_LABELS[e.type]||e.type}</td><td>${e.count||'—'}</td><td>${e.note||'—'}</td></tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Flokklogg – ViddaAssistent</title>
+  <style>body{font-family:Georgia,serif;max-width:900px;margin:2cm auto;color:#2A2A22}h1{font-size:1.8rem;margin-bottom:0.3rem}p{color:#6B6555;font-size:0.9rem;margin-bottom:2rem}table{width:100%;border-collapse:collapse;font-size:0.85rem}th{background:#1C2B1A;color:white;padding:0.6rem 0.8rem;text-align:left;font-weight:400}td{padding:0.6rem 0.8rem;border-bottom:1px solid #E8E2D4}tr:nth-child(even) td{background:#F5F2ED}.footer{margin-top:2rem;font-size:0.75rem;color:#9A9182;border-top:1px solid #E8E2D4;padding-top:1rem}</style>
+  </head><body><h1>Flokklogg – ViddaAssistent</h1><p>Eksportert ${new Date().toLocaleDateString('no-NO')} · ${flokklogg.length} registreringer</p>
+  <table><thead><tr><th>Dato</th><th>Lokasjon</th><th>Hendelse</th><th>Antall dyr</th><th>Notat</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="footer">ViddaAssistent – AI-hjelper for reindrift i Finnmark og Troms</div></body></html>`;
+  const w=window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(),500);
+}
+
+// Hook into existing handleAuthSuccess to init flokklogg
+const _origHandleAuth = handleAuthSuccess;
 
 </script>
 </body>
