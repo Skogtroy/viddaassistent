@@ -321,7 +321,21 @@ body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var
           <div class="panel-sub">Sanntidsvarsler fra YR for din lokasjon</div>
         </div>
         <div class="weather-loc-row">
-          <input class="loc-input" id="loc-input" type="text" placeholder="Skriv stedsnavn (f.eks. Kautokeino)" onkeydown="if(event.key==='Enter')searchLocation()">
+          <input class="loc-input" id="loc-input" type="text" placeholder="Skriv stedsnavn…" list="steder-list" onkeydown="if(event.key==='Enter')searchLocation()">
+          <datalist id="steder-list">
+            <option value="Kautokeino">
+            <option value="Karasjok">
+            <option value="Alta">
+            <option value="Lakselv">
+            <option value="Hammerfest">
+            <option value="Tana">
+            <option value="Vadsø">
+            <option value="Kirkenes">
+            <option value="Masi">
+            <option value="Honningsvåg">
+            <option value="Porsanger">
+            <option value="Tromsø">
+          </datalist>
           <button class="loc-btn" onclick="searchLocation()">Søk</button>
           <button class="gps-btn" onclick="getGPS()">📍 GPS</button>
         </div>
@@ -646,18 +660,58 @@ function setLang(lang) {
 }
 
 // ── WEATHER ──
+// Hardkodede steder på Finnmarksvidda + vanlige norske byer
+const STEDER = {
+  'kautokeino': { lat: 69.008, lon: 23.042, name: 'Kautokeino' },
+  'karasjok': { lat: 69.474, lon: 25.509, name: 'Karasjok' },
+  'lakselv': { lat: 70.044, lon: 24.979, name: 'Lakselv' },
+  'alta': { lat: 69.969, lon: 23.271, name: 'Alta' },
+  'hammerfest': { lat: 70.663, lon: 23.682, name: 'Hammerfest' },
+  'vadsø': { lat: 70.074, lon: 29.751, name: 'Vadsø' },
+  'vadso': { lat: 70.074, lon: 29.751, name: 'Vadsø' },
+  'tana': { lat: 70.195, lon: 28.183, name: 'Tana' },
+  'kirkenes': { lat: 69.727, lon: 30.046, name: 'Kirkenes' },
+  'honningsvåg': { lat: 70.982, lon: 25.972, name: 'Honningsvåg' },
+  'honningsvag': { lat: 70.982, lon: 25.972, name: 'Honningsvåg' },
+  'masi': { lat: 69.432, lon: 23.648, name: 'Máze/Masi' },
+  'maze': { lat: 69.432, lon: 23.648, name: 'Máze/Masi' },
+  'máze': { lat: 69.432, lon: 23.648, name: 'Máze/Masi' },
+  'karigasniemi': { lat: 69.668, lon: 25.838, name: 'Karigasniemi' },
+  'iešjávri': { lat: 69.25, lon: 24.8, name: 'Iešjávri' },
+  'iesjavri': { lat: 69.25, lon: 24.8, name: 'Iešjávri' },
+  'porsanger': { lat: 70.3, lon: 25.8, name: 'Porsanger' },
+  'tromsø': { lat: 69.649, lon: 18.956, name: 'Tromsø' },
+  'tromso': { lat: 69.649, lon: 18.956, name: 'Tromsø' },
+  'oslo': { lat: 59.913, lon: 10.752, name: 'Oslo' },
+  'bergen': { lat: 60.391, lon: 5.322, name: 'Bergen' },
+  'trondheim': { lat: 63.430, lon: 10.395, name: 'Trondheim' },
+};
+
 async function searchLocation() {
   const q = document.getElementById('loc-input').value.trim();
   if (!q) return;
   showWeatherLoading();
+
+  // Sjekk hardkodet liste først
+  const key = q.toLowerCase().trim();
+  const match = STEDER[key] || Object.values(STEDER).find(s => s.name.toLowerCase().includes(key));
+  if (match) {
+    await fetchWeather(match.lat, match.lon, match.name);
+    return;
+  }
+
+  // Fallback til server-geocoding
   try {
     const res = await fetch(`${API}/api/geocode?q=${encodeURIComponent(q)}`, {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
-    if (!data.length) { hideWeatherLoading(); toast('Fant ikke stedet. Prøv et annet navn.'); return; }
+    if (!data.length) { hideWeatherLoading(); toast('Fant ikke stedet. Prøv f.eks: Kautokeino, Karasjok, Alta, Lakselv, Tana'); return; }
     await fetchWeather(parseFloat(data[0].lat), parseFloat(data[0].lon), q);
-  } catch(e) { hideWeatherLoading(); toast('Stedssøk feilet. Sjekk internett.'); }
+  } catch(e) {
+    hideWeatherLoading();
+    toast('Fant ikke stedet. Prøv: Kautokeino, Karasjok, Alta, Lakselv, Hammerfest, Tana');
+  }
 }
 
 function getGPS() {
