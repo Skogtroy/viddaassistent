@@ -1,1 +1,955 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ViddaAssistent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;1,8..60,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --snow:#F5F2ED;--birch:#E8E2D4;--moss:#4A5E45;--deep:#1C2B1A;
+  --frost:#8BA8A4;--amber:#C17A2B;--ember:#8B3A1C;
+  --text:#2A2A22;--muted:#6B6555;--light:#9A9182;
+  --sidebar:260px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Source Serif 4',Georgia,serif;background:var(--deep);color:var(--text)}
+.screen{position:fixed;inset:0;display:none;flex-direction:column}
+.screen.active{display:flex}
 
+/* LOGIN / REGISTER */
+#screen-login{background:var(--deep);align-items:center;justify-content:center;padding:2rem;overflow-y:auto}
+.login-box{width:100%;max-width:380px;padding:1rem 0}
+.login-logo{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--snow);margin-bottom:0.3rem}
+.login-logo span{font-style:italic;color:var(--frost)}
+.login-tagline{font-size:0.82rem;color:rgba(245,242,237,0.45);margin-bottom:2rem;font-weight:300}
+.tab-row{display:flex;gap:0;margin-bottom:2rem;border-bottom:1px solid rgba(139,168,164,0.2)}
+.tab{padding:0.6rem 1.2rem;font-size:0.82rem;color:rgba(245,242,237,0.4);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;font-family:'Source Serif 4',serif;background:none;border-top:none;border-left:none;border-right:none}
+.tab.active{color:var(--frost);border-bottom-color:var(--frost)}
+.login-label{font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--frost);display:block;margin-bottom:0.5rem}
+.login-input{width:100%;padding:0.85rem 1rem;background:rgba(255,255,255,0.06);border:1px solid rgba(139,168,164,0.25);color:var(--snow);font-family:'Source Serif 4',serif;font-size:0.95rem;margin-bottom:1rem;outline:none;transition:border-color 0.2s}
+.login-input::placeholder{color:rgba(245,242,237,0.25)}
+.login-input:focus{border-color:var(--frost)}
+.login-btn{width:100%;padding:0.9rem;background:var(--moss);color:var(--snow);border:none;font-family:'Source Serif 4',serif;font-size:0.9rem;letter-spacing:0.06em;cursor:pointer;transition:background 0.2s;margin-top:0.5rem}
+.login-btn:hover{background:#3a4e36}
+.login-btn:disabled{background:var(--muted);cursor:not-allowed}
+.login-err{font-size:0.8rem;color:#E24B4A;margin-top:0.5rem;display:none;padding:0.5rem;background:rgba(226,75,74,0.1)}
+.login-ok{font-size:0.8rem;color:#639922;margin-top:0.5rem;display:none;padding:0.5rem;background:rgba(99,153,34,0.1)}
+.apikey-row{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid rgba(139,168,164,0.15)}
+.apikey-hint{font-size:0.72rem;color:rgba(245,242,237,0.3);margin-bottom:0.5rem;line-height:1.5}
+.apikey-link{color:var(--frost);text-decoration:none}
+
+/* APP */
+#screen-app{background:var(--snow);flex-direction:row}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:var(--deep);display:flex;flex-direction:column;border-right:1px solid rgba(139,168,164,0.1)}
+.sidebar-top{padding:1.5rem 1.2rem 1rem;border-bottom:1px solid rgba(139,168,164,0.1)}
+.app-logo{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--snow)}
+.app-logo span{font-style:italic;color:var(--frost)}
+.sidebar-user{font-size:0.75rem;color:rgba(245,242,237,0.4);margin-top:0.3rem}
+.trial-badge{display:inline-block;margin-top:0.4rem;font-size:0.65rem;background:rgba(193,122,43,0.2);color:#EF9F27;padding:2px 8px;letter-spacing:0.06em}
+.sidebar-nav{flex:1;padding:1rem 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:0.7rem;padding:0.75rem 1.2rem;font-size:0.85rem;color:rgba(245,242,237,0.55);cursor:pointer;transition:all 0.15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--snow);background:rgba(255,255,255,0.04)}
+.nav-item.active{color:var(--snow);border-left-color:var(--frost);background:rgba(139,168,164,0.08)}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:0.7}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-bottom{padding:1rem 1.2rem;border-top:1px solid rgba(139,168,164,0.1)}
+.lang-toggle{display:flex;gap:0.4rem;margin-bottom:0.8rem}
+.lang-btn{flex:1;padding:0.45rem;font-size:0.72rem;letter-spacing:0.06em;border:1px solid rgba(139,168,164,0.2);background:transparent;color:rgba(245,242,237,0.4);cursor:pointer;transition:all 0.2s}
+.lang-btn.active{background:rgba(139,168,164,0.2);color:var(--frost);border-color:var(--frost)}
+.upgrade-btn{width:100%;padding:0.6rem;font-size:0.78rem;background:var(--amber);color:var(--snow);border:none;cursor:pointer;font-family:'Source Serif 4',serif;letter-spacing:0.04em;transition:background 0.2s;margin-bottom:0.5rem}
+.upgrade-btn:hover{background:#a8692a}
+.logout-btn{width:100%;padding:0.5rem;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;background:transparent;border:1px solid rgba(139,168,164,0.15);color:rgba(245,242,237,0.3);cursor:pointer;transition:all 0.2s;font-family:'Source Serif 4',serif}
+.logout-btn:hover{color:rgba(245,242,237,0.6);border-color:rgba(139,168,164,0.3)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.panel{display:none;flex:1;flex-direction:column;overflow:hidden}
+.panel.active{display:flex}
+
+/* WEATHER */
+.weather-panel{padding:2rem;overflow-y:auto;background:var(--snow)}
+.panel-header{margin-bottom:2rem}
+.panel-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--deep);margin-bottom:0.2rem}
+.panel-sub{font-size:0.82rem;color:var(--muted);font-weight:300}
+.weather-loc-row{display:flex;gap:0.8rem;align-items:flex-end;margin-bottom:1.5rem;flex-wrap:wrap}
+.loc-input{flex:1;min-width:160px;padding:0.65rem 0.9rem;border:1px solid var(--birch);background:white;font-family:'Source Serif 4',serif;font-size:0.9rem;color:var(--text);outline:none;transition:border-color 0.2s}
+.loc-input:focus{border-color:var(--moss)}
+.loc-btn{padding:0.65rem 1.2rem;background:var(--moss);color:var(--snow);border:none;font-family:'Source Serif 4',serif;font-size:0.85rem;cursor:pointer;transition:background 0.2s;white-space:nowrap}
+.loc-btn:hover{background:var(--deep)}
+.gps-btn{padding:0.65rem 0.9rem;background:transparent;border:1px solid var(--birch);color:var(--muted);cursor:pointer;transition:all 0.2s;font-size:0.85rem;white-space:nowrap;font-family:'Source Serif 4',serif}
+.gps-btn:hover{border-color:var(--moss);color:var(--moss)}
+.weather-card{background:var(--deep);padding:2rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+.weather-card::after{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(139,168,164,0.12) 0%,transparent 70%)}
+.weather-loc-name{font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--frost);margin-bottom:0.5rem}
+.weather-temp{font-family:'Playfair Display',serif;font-size:4rem;font-weight:700;color:var(--snow);line-height:1}
+.weather-desc{font-size:1rem;color:rgba(245,242,237,0.6);font-weight:300;margin-top:0.3rem;font-style:italic}
+.weather-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem}
+.weather-stat{background:rgba(255,255,255,0.05);padding:0.8rem}
+.weather-stat-val{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--snow)}
+.weather-stat-label{font-size:0.68rem;color:rgba(245,242,237,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:0.2rem}
+.weather-alert{background:#4A1B0C;border-left:3px solid var(--ember);padding:1rem 1.2rem;margin-bottom:1rem;font-size:0.85rem;color:rgba(245,242,237,0.85);font-weight:300;display:none}
+.weather-alert.show{display:block}
+.alert-title{font-weight:400;color:#F0997B;margin-bottom:0.2rem;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em}
+.weather-forecast{background:white;border:1px solid var(--birch)}
+.forecast-title{font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.8rem 1rem;border-bottom:1px solid var(--birch)}
+.forecast-row{display:flex;align-items:center;padding:0.7rem 1rem;border-bottom:1px solid var(--birch);gap:1rem;font-size:0.85rem}
+.forecast-row:last-child{border-bottom:none}
+.forecast-time{color:var(--muted);min-width:80px;font-weight:300}
+.forecast-temp{font-family:'Playfair Display',serif;font-weight:700;color:var(--deep);min-width:50px}
+.forecast-wind{color:var(--muted);font-weight:300;flex:1}
+.forecast-cond{font-size:0.78rem;color:var(--light)}
+.weather-loading{padding:3rem;text-align:center;color:var(--muted);font-style:italic;font-size:0.9rem}
+.weather-empty{padding:3rem;text-align:center;color:var(--muted);font-size:0.9rem;font-weight:300}
+
+/* CHAT */
+.chat-panel{background:var(--snow)}
+.chat-topbar{padding:1rem 1.5rem;background:white;border-bottom:1px solid var(--birch);display:flex;align-items:center;gap:0.8rem;flex-shrink:0}
+.chat-status-dot{width:8px;height:8px;border-radius:50%;background:var(--moss);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.chat-topbar-name{font-size:0.9rem;color:var(--deep);font-weight:400}
+.chat-topbar-sub{font-size:0.75rem;color:var(--muted);font-weight:300;margin-left:auto}
+.chat-messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.msg{display:flex;gap:0.8rem;align-items:flex-start;animation:msgIn 0.2s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg.user{flex-direction:row-reverse}
+.msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:500}
+.msg-avatar.ai{background:var(--moss);color:var(--snow)}
+.msg-avatar.user-av{background:var(--birch);color:var(--muted)}
+.msg-bubble{padding:0.75rem 1rem;max-width:72%;font-size:0.88rem;line-height:1.65;font-weight:300}
+.msg-bubble.ai{background:white;border:1px solid var(--birch);color:var(--text)}
+.msg-bubble.user{background:var(--deep);color:var(--snow)}
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--light);animation:dot 1.2s infinite}
+.typing-dots span:nth-child(2){animation-delay:0.2s}
+.typing-dots span:nth-child(3){animation-delay:0.4s}
+@keyframes dot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.chat-disclaimer{padding:0.6rem 1.5rem;font-size:0.7rem;color:var(--light);font-style:italic;text-align:center;border-top:1px solid var(--birch);background:white;flex-shrink:0}
+.chat-inputrow{display:flex;border-top:1px solid var(--birch);background:white;flex-shrink:0}
+.chat-input{flex:1;padding:1rem 1.2rem;border:none;background:transparent;font-family:'Source Serif 4',serif;font-size:0.92rem;color:var(--text);outline:none;resize:none;height:54px}
+.chat-input::placeholder{color:var(--light)}
+.chat-send{padding:0 1.4rem;background:var(--moss);color:var(--snow);border:none;cursor:pointer;transition:background 0.2s;font-size:1.1rem}
+.chat-send:hover{background:var(--deep)}
+.chat-send:disabled{background:var(--birch);cursor:not-allowed}
+.speak-btn{background:transparent;border:none;cursor:pointer;padding:0 0.8rem;color:var(--light);font-size:1rem;transition:color 0.2s}
+.speak-btn:hover{color:var(--moss)}
+.speak-btn.speaking{color:var(--moss);animation:pulse 1s infinite}
+.quick-prompts{padding:0.8rem 1.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;border-top:1px solid var(--birch);background:white;flex-shrink:0}
+.qp{padding:0.35rem 0.8rem;font-size:0.75rem;border:1px solid var(--birch);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;font-family:'Source Serif 4',serif}
+.qp:hover{border-color:var(--moss);color:var(--moss);background:rgba(74,94,69,0.04)}
+
+/* SETTINGS */
+.settings-panel{padding:2rem;overflow-y:auto;background:var(--snow)}
+.settings-section{background:white;border:1px solid var(--birch);margin-bottom:1.5rem}
+.settings-section-title{font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding:0.8rem 1.2rem;border-bottom:1px solid var(--birch)}
+.settings-row{padding:1rem 1.2rem;border-bottom:1px solid var(--birch);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.settings-row:last-child{border-bottom:none}
+.settings-label{font-size:0.88rem;color:var(--text)}
+.settings-hint{font-size:0.75rem;color:var(--muted);margin-top:0.2rem;font-weight:300}
+.settings-input{padding:0.5rem 0.8rem;border:1px solid var(--birch);font-family:'Source Serif 4',serif;font-size:0.85rem;color:var(--text);outline:none;width:200px;transition:border-color 0.2s}
+.settings-input:focus{border-color:var(--moss)}
+.settings-btn{padding:0.5rem 1rem;background:var(--moss);color:var(--snow);border:none;font-family:'Source Serif 4',serif;font-size:0.82rem;cursor:pointer;transition:background 0.2s;white-space:nowrap}
+.settings-btn:hover{background:var(--deep)}
+.sub-status{font-size:0.8rem;padding:3px 10px;display:inline-block}
+.sub-status.trial{background:rgba(193,122,43,0.1);color:var(--amber)}
+.sub-status.active{background:rgba(74,94,69,0.1);color:var(--moss)}
+.sub-status.inactive{background:rgba(139,58,28,0.1);color:var(--ember)}
+
+/* MOBILE */
+.mobile-nav{display:none;background:var(--deep);border-top:1px solid rgba(139,168,164,0.1);flex-shrink:0}
+@media(max-width:700px){
+  .sidebar{display:none}
+  .mobile-nav{display:flex}
+  .mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:0.7rem 0.5rem;gap:0.3rem;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,242,237,0.4);cursor:pointer;transition:color 0.2s;border-top:2px solid transparent}
+  .mobile-nav-item.active{color:var(--frost);border-top-color:var(--frost)}
+  .mobile-nav-item svg{width:18px;height:18px}
+  .weather-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* TOAST */
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--deep);color:var(--snow);padding:0.7rem 1.5rem;font-size:0.85rem;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;border:1px solid rgba(139,168,164,0.2)}
+.toast.show{opacity:1}
+
+/* MAP */
+#panel-map { background: var(--snow); }
+#map { width: 100%; height: 100%; z-index: 1; }
+.map-topbar { padding: 0.8rem 1.5rem; background: white; border-bottom: 1px solid var(--birch); display: flex; align-items: center; gap: 1rem; flex-shrink: 0; flex-wrap: wrap; }
+.map-topbar-title { font-size: 0.9rem; color: var(--deep); font-weight: 400; }
+.map-gps-btn { padding: 0.45rem 1rem; background: var(--moss); color: var(--snow); border: none; font-family: 'Source Serif 4', serif; font-size: 0.8rem; cursor: pointer; transition: background 0.2s; }
+.map-gps-btn:hover { background: var(--deep); }
+.map-gps-btn.tracking { background: var(--ember); }
+.map-legend { display: flex; gap: 1rem; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.map-legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--muted); }
+.map-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.weather-popup { font-family: 'Source Serif 4', serif; min-width: 160px; }
+.weather-popup-loc { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+.weather-popup-temp { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--deep); line-height: 1; }
+.weather-popup-desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+.weather-popup-detail { font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
+
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ LOGIN / REGISTER ═══ -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">Vidda<span>Assistent</span></div>
+    <div class="login-tagline">AI-hjelper for reindrift i Finnmark og Troms</div>
+
+    <div class="tab-row">
+      <button class="tab active" id="tab-login" onclick="switchTab('login')">Logg inn</button>
+      <button class="tab" id="tab-register" onclick="switchTab('register')">Registrer</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="form-login">
+      <label class="login-label">E-post</label>
+      <input class="login-input" id="l-email" type="email" placeholder="din@epost.no">
+      <label class="login-label">Passord</label>
+      <input class="login-input" id="l-pass" type="password" placeholder="••••••••">
+      <div class="login-err" id="l-err"></div>
+      <button class="login-btn" id="l-btn" onclick="doLogin()">Logg inn</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="form-register" style="display:none">
+      <label class="login-label">Fullt navn</label>
+      <input class="login-input" id="r-name" type="text" placeholder="Ola Nordmann">
+      <label class="login-label">E-post</label>
+      <input class="login-input" id="r-email" type="email" placeholder="din@epost.no">
+      <label class="login-label">Passord</label>
+      <input class="login-input" id="r-pass" type="password" placeholder="Minst 8 tegn">
+      <div class="apikey-row">
+        <div class="apikey-hint">
+          Claude API-nøkkel – hent fra <a class="apikey-link" href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br>
+          Kan legges til senere under innstillinger.
+        </div>
+        <input class="login-input" id="r-apikey" type="password" placeholder="sk-ant-api03-... (valgfritt nå)">
+      </div>
+      <div class="login-err" id="r-err"></div>
+      <div class="login-ok" id="r-ok"></div>
+      <button class="login-btn" id="r-btn" onclick="doRegister()">Opprett konto – 14 dager gratis</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="screen-app" class="screen">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="app-logo">Vidda<span>Assistent</span></div>
+      <div class="sidebar-user" id="sidebar-user">—</div>
+      <div class="trial-badge" id="trial-badge" style="display:none">14 dager gratis prøve</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPanel('weather')" id="nav-weather">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="3"/><path d="M8 1v1M8 14v1M1 8h1M14 8h1M3.2 3.2l.7.7M12.1 12.1l.7.7M12.1 3.9l-.7.7M3.9 12.1l-.7.7"/>
+        </svg>
+        Vær på vidda
+      </div>
+      <div class="nav-item" onclick="showPanel('chat')" id="nav-chat">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 3h12v8H9l-3 2V11H2z"/>
+        </svg>
+        AI-assistent
+      </div>
+      <div class="nav-item" onclick="showPanel('map')" id="nav-map">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/><path d="M6 2v10M10 4v10"/>
+        </svg>
+        Kart
+      </div>
+      <div class="nav-item" onclick="showPanel('settings')" id="nav-settings">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/>
+        </svg>
+        Innstillinger
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div style="font-size:0.68rem;color:rgba(245,242,237,0.3);margin-bottom:0.6rem;letter-spacing:0.08em;text-transform:uppercase">Språk</div>
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="lang-no" onclick="setLang('no')">Norsk</button>
+        <button class="lang-btn" id="lang-se" onclick="setLang('se')">Sámegiella</button>
+      </div>
+      <button class="upgrade-btn" id="upgrade-btn" onclick="startCheckout()" style="display:none">Aktiver abonnement – 299 kr/mnd</button>
+      <button class="logout-btn" onclick="doLogout()">Logg ut</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- WEATHER PANEL -->
+    <div class="panel active" id="panel-weather">
+      <div class="weather-panel">
+        <div class="panel-header">
+          <div class="panel-title" id="weather-title">Vær på vidda</div>
+          <div class="panel-sub">Sanntidsvarsler fra YR for din lokasjon</div>
+        </div>
+        <div class="weather-loc-row">
+          <input class="loc-input" id="loc-input" type="text" placeholder="Skriv stedsnavn (f.eks. Kautokeino)" onkeydown="if(event.key==='Enter')searchLocation()">
+          <button class="loc-btn" onclick="searchLocation()">Søk</button>
+          <button class="gps-btn" onclick="getGPS()">📍 GPS</button>
+        </div>
+        <div class="weather-alert" id="weather-alert">
+          <div class="alert-title">⚠ Advarsel</div>
+          <div id="alert-text"></div>
+        </div>
+        <div class="weather-loading" id="weather-loading" style="display:none">Henter værvarsler fra YR…</div>
+        <div class="weather-empty" id="weather-empty">Søk på et sted eller bruk GPS for å hente vær.</div>
+        <div id="weather-main" style="display:none">
+          <div class="weather-card">
+            <div class="weather-loc-name" id="w-locname">—</div>
+            <div class="weather-temp" id="w-temp">—</div>
+            <div class="weather-desc" id="w-desc">—</div>
+            <div class="weather-grid">
+              <div class="weather-stat"><div class="weather-stat-val" id="w-wind">—</div><div class="weather-stat-label">Vind m/s</div></div>
+              <div class="weather-stat"><div class="weather-stat-val" id="w-humid">—</div><div class="weather-stat-label">Fuktighet %</div></div>
+              <div class="weather-stat"><div class="weather-stat-val" id="w-precip">—</div><div class="weather-stat-label">Nedbør mm</div></div>
+            </div>
+          </div>
+          <div class="weather-forecast">
+            <div class="forecast-title">Neste 12 timer</div>
+            <div id="forecast-rows"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div class="panel" id="panel-chat">
+      <div class="chat-topbar">
+        <div class="chat-status-dot"></div>
+        <div class="chat-topbar-name">ViddaAssistent</div>
+        <div class="chat-topbar-sub" id="chat-lang-label">Svarer på norsk</div>
+      </div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg">
+          <div class="msg-avatar ai">VA</div>
+          <div class="msg-bubble ai" id="welcome-msg">Hei! Jeg er ViddaAssistenten din. Spør meg om vær, beite, flokkflytting eller reindriftsregler – på norsk eller sámegiella.</div>
+        </div>
+      </div>
+      <div class="quick-prompts" id="quick-prompts">
+        <button class="qp" onclick="sendQuick(this.textContent)">Trygt å flytte flokken i dag?</button>
+        <button class="qp" onclick="sendQuick(this.textContent)">Beste beite denne uken</button>
+        <button class="qp" onclick="sendQuick(this.textContent)">Rovdyrfare i området?</button>
+        <button class="qp" onclick="sendQuick(this.textContent)">Regler for kalvemerking</button>
+      </div>
+      <div class="chat-disclaimer">AI-genererte råd. Kontakt distriktsveterinær ved sykdom. Ring 112 ved nød.</div>
+      <div class="chat-inputrow">
+        <input class="chat-input" id="chat-input" placeholder="Still et spørsmål…" onkeydown="chatKey(event)">
+        <button class="speak-btn" id="speak-btn" onclick="toggleSpeak()" title="Les opp siste svar">🔊</button>
+        <button class="chat-send" id="chat-send" onclick="sendMessage()">↑</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="panel-settings">
+      <div class="settings-panel">
+        <div class="panel-header">
+          <div class="panel-title">Innstillinger</div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Abonnement</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Status</div>
+              <div class="settings-hint">299 kr/mnd etter prøveperioden</div>
+            </div>
+            <span class="sub-status trial" id="sub-status-badge">Laster…</span>
+          </div>
+          <div class="settings-row" id="upgrade-row">
+            <div>
+              <div class="settings-label">Aktiver abonnement</div>
+              <div class="settings-hint">Betal via Stripe – trygt og enkelt</div>
+            </div>
+            <button class="settings-btn" onclick="startCheckout()">Betal 299 kr/mnd</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Claude API-nøkkel</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">API-nøkkel</div>
+              <div class="settings-hint">Hent fra <a href="https://console.anthropic.com" target="_blank" style="color:var(--moss)">console.anthropic.com</a></div>
+            </div>
+            <div style="display:flex;gap:0.5rem">
+              <input class="settings-input" id="apikey-input" type="password" placeholder="sk-ant-api03-...">
+              <button class="settings-btn" onclick="saveApiKey()">Lagre</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Konto</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label" id="settings-email">—</div>
+              <div class="settings-hint">Innlogget bruker</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MAP PANEL -->
+    <div class="panel" id="panel-map">
+      <div class="map-topbar">
+        <div class="map-topbar-title">Kart over vidda</div>
+        <button class="map-gps-btn" id="map-gps-btn" onclick="toggleMapGPS()">📍 Spor GPS</button>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#4A5E45"></div>Din posisjon</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#378ADD"></div>Værdata</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#C17A2B;border-radius:2px"></div>Reinbeite</div>
+        </div>
+      </div>
+      <div id="map"></div>
+    </div>
+
+  </main>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-item active" id="mob-weather" onclick="showPanel('weather')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v1M8 14v1M1 8h1M14 8h1"/></svg>Vær
+    </div>
+    <div class="mobile-nav-item" id="mob-chat" onclick="showPanel('chat')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v8H9l-3 2V11H2z"/></svg>Assistent
+    </div>
+    <div class="mobile-nav-item" id="mob-map" onclick="showPanel('map')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L2 4v10l4-2 4 2 4-2V2l-4 2-4-2z"/></svg>Kart
+    </div>
+    <div class="mobile-nav-item" id="mob-settings" onclick="showPanel('settings')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg>Innstillinger
+    </div>
+  </nav>
+</div>
+
+<script>
+// ── CONFIG – bytt til din Railway-URL når du deployer ──
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000'
+  : ''; // Tomt = samme domene (fungerer på Railway)
+
+let token = localStorage.getItem('va_token');
+let currentUser = null;
+let currentLang = 'no';
+let chatHistory = [];
+let lastWeatherData = null;
+let isSpeaking = false;
+
+// ── TOAST ──
+function toast(msg, dur = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+// ── LOGIN ──
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const err = document.getElementById('l-err');
+  const btn = document.getElementById('l-btn');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Logger inn…';
+  try {
+    const res = await fetch(`${API}/api/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
+    handleAuthSuccess(data);
+  } catch(e) {
+    err.textContent = 'Kunne ikke koble til server. Er Railway oppe?';
+    err.style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = 'Logg inn'; }
+}
+
+// ── REGISTER ──
+async function doRegister() {
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const pass = document.getElementById('r-pass').value;
+  const apikey = document.getElementById('r-apikey').value.trim();
+  const err = document.getElementById('r-err');
+  const ok = document.getElementById('r-ok');
+  const btn = document.getElementById('r-btn');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!name || !email || !pass) { err.textContent = 'Fyll inn alle feltene'; err.style.display = 'block'; return; }
+  if (pass.length < 6) { err.textContent = 'Passord må være minst 6 tegn'; err.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Oppretter konto…';
+  try {
+    const res = await fetch(`${API}/api/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password: pass, claudeApiKey: apikey || null })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
+    handleAuthSuccess(data);
+  } catch(e) {
+    err.textContent = 'Kunne ikke koble til server. Er Railway oppe?';
+    err.style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = 'Opprett konto – 14 dager gratis'; }
+}
+
+function handleAuthSuccess(data) {
+  token = data.token;
+  currentUser = data;
+  localStorage.setItem('va_token', token);
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  updateUserUI();
+  checkPaymentReturn();
+}
+
+function updateUserUI() {
+  if (!currentUser) return;
+  document.getElementById('sidebar-user').textContent = currentUser.email;
+  document.getElementById('settings-email').textContent = currentUser.email;
+  const badge = document.getElementById('trial-badge');
+  const upgradeBtn = document.getElementById('upgrade-btn');
+  const upgradeRow = document.getElementById('upgrade-row');
+  const statusBadge = document.getElementById('sub-status-badge');
+
+  if (currentUser.subscriptionStatus === 'trial') {
+    badge.style.display = 'inline-block';
+    upgradeBtn.style.display = 'block';
+    upgradeRow.style.display = 'flex';
+    statusBadge.textContent = 'Gratis prøveperiode';
+    statusBadge.className = 'sub-status trial';
+  } else if (currentUser.subscriptionStatus === 'active') {
+    badge.style.display = 'none';
+    upgradeBtn.style.display = 'none';
+    upgradeRow.style.display = 'none';
+    statusBadge.textContent = 'Aktivt abonnement';
+    statusBadge.className = 'sub-status active';
+  } else {
+    badge.style.display = 'none';
+    upgradeBtn.style.display = 'block';
+    upgradeRow.style.display = 'flex';
+    statusBadge.textContent = 'Inaktivt';
+    statusBadge.className = 'sub-status inactive';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('va_token');
+  token = null; currentUser = null;
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+}
+
+// Auto-login
+window.addEventListener('DOMContentLoaded', async () => {
+  if (token) {
+    try {
+      const res = await fetch(`${API}/api/me`, { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) {
+        currentUser = await res.json();
+        document.getElementById('screen-login').classList.remove('active');
+        document.getElementById('screen-app').classList.add('active');
+        updateUserUI();
+        checkPaymentReturn();
+      } else { localStorage.removeItem('va_token'); token = null; }
+    } catch(e) { /* server ikke tilgjengelig */ }
+  }
+  document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+function checkPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success') {
+    toast('Betaling godkjent! Abonnementet ditt er nå aktivt. 🎉', 5000);
+    if (currentUser) currentUser.subscriptionStatus = 'active';
+    updateUserUI();
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+// ── PANELS ──
+function showPanel(name) {
+  ['weather','chat','map','settings'].forEach(p => {
+    document.getElementById('panel-'+p).classList.toggle('active', p===name);
+    document.getElementById('nav-'+p)?.classList.toggle('active', p===name);
+    document.getElementById('mob-'+p)?.classList.toggle('active', p===name);
+  });
+  if (name === 'map') setTimeout(initMap, 100);
+}
+
+// ── LANGUAGE ──
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('lang-no').classList.toggle('active', lang==='no');
+  document.getElementById('lang-se').classList.toggle('active', lang==='se');
+  document.getElementById('chat-lang-label').textContent = lang==='no' ? 'Svarer på norsk' : 'Vástida sámegillii';
+  document.getElementById('weather-title').textContent = lang==='no' ? 'Vær på vidda' : 'Dálki viddas';
+  document.getElementById('welcome-msg').textContent = lang==='se'
+    ? 'Bures! Mun lean du ViddaAssistent. Jearaš mus dálkkis, guohtumis, ealuidhálddašeamis dahje boazodoallošiehtadusain.'
+    : 'Hei! Jeg er ViddaAssistenten din. Spør meg om vær, beite, flokkflytting eller reindriftsregler.';
+  const qp = document.getElementById('quick-prompts');
+  qp.innerHTML = lang==='se'
+    ? `<button class="qp" onclick="sendQuick(this.textContent)">Lea go álki sirdit ealuid odne?</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Buoremus guohtumat dán vahkus</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Guovža- dahje biepmoeallit?</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Njuorggánmerken njuolggadusat</button>`
+    : `<button class="qp" onclick="sendQuick(this.textContent)">Trygt å flytte flokken i dag?</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Beste beite denne uken</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Rovdyrfare i området?</button>
+       <button class="qp" onclick="sendQuick(this.textContent)">Regler for kalvemerking</button>`;
+}
+
+// ── WEATHER ──
+async function searchLocation() {
+  const q = document.getElementById('loc-input').value.trim();
+  if (!q) return;
+  showWeatherLoading();
+  try {
+    const res = await fetch(`${API}/api/geocode?q=${encodeURIComponent(q)}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!data.length) { hideWeatherLoading(); toast('Fant ikke stedet. Prøv et annet navn.'); return; }
+    await fetchWeather(parseFloat(data[0].lat), parseFloat(data[0].lon), q);
+  } catch(e) { hideWeatherLoading(); toast('Stedssøk feilet. Sjekk internett.'); }
+}
+
+function getGPS() {
+  if (!navigator.geolocation) { toast('GPS ikke tilgjengelig i denne nettleseren.'); return; }
+  showWeatherLoading();
+  navigator.geolocation.getCurrentPosition(
+    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude, 'Din posisjon'),
+    () => { hideWeatherLoading(); toast('Kunne ikke hente GPS-posisjon.'); }
+  );
+}
+
+function showWeatherLoading() {
+  document.getElementById('weather-loading').style.display = 'block';
+  document.getElementById('weather-main').style.display = 'none';
+  document.getElementById('weather-empty').style.display = 'none';
+}
+function hideWeatherLoading() {
+  document.getElementById('weather-loading').style.display = 'none';
+}
+
+async function fetchWeather(lat, lon, name) {
+  try {
+    const res = await fetch(`${API}/api/weather?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    lastWeatherData = { lat, lon, name, data };
+    displayWeather(name, data);
+  } catch(e) {
+    hideWeatherLoading();
+    document.getElementById('weather-empty').style.display = 'block';
+    document.getElementById('weather-empty').textContent = '⚠ Kunne ikke hente YR-værvarsler. Prøv igjen.';
+  }
+}
+
+function yrSymbolToDesc(symbol) {
+  if (!symbol) return 'Ukjent';
+  const key = symbol.replace(/_night|_day|_polartwilight/g, '');
+  const map = { clearsky:'Klarvær', fair:'Lettskyet', partlycloudy:'Delvis skyet', cloudy:'Overskyet', fog:'Tåke', lightrain:'Lett regn', rain:'Regn', heavyrain:'Kraftig regn', lightsnow:'Lett snø', snow:'Snø', heavysnow:'Kraftig snø', sleet:'Sludd', thunder:'Tordenvær', lightrainshowers:'Lette regnbyger', rainshowers:'Regnbyger', heavyrainshowers:'Kraftige regnbyger', lightsnowshowers:'Lette snøbyger', snowshowers:'Snøbyger' };
+  return map[key] || key;
+}
+
+function displayWeather(name, data) {
+  const ts = data.properties.timeseries;
+  const now = ts[0];
+  const d = now.data.instant.details;
+  const next1h = now.data.next_1_hours;
+
+  document.getElementById('w-locname').textContent = name.toUpperCase();
+  document.getElementById('w-temp').textContent = Math.round(d.air_temperature) + '°';
+  document.getElementById('w-desc').textContent = yrSymbolToDesc(next1h?.summary?.symbol_code);
+  document.getElementById('w-wind').textContent = Math.round(d.wind_speed);
+  document.getElementById('w-humid').textContent = Math.round(d.relative_humidity);
+  document.getElementById('w-precip').textContent = (next1h?.details?.precipitation_amount ?? 0).toFixed(1);
+
+  const alertEl = document.getElementById('weather-alert');
+  if (d.wind_speed > 10) {
+    alertEl.classList.add('show');
+    document.getElementById('alert-text').textContent = `Sterk vind ${Math.round(d.wind_speed)} m/s. Vurder å utsette flokkflytting.`;
+  } else alertEl.classList.remove('show');
+
+  const fRows = document.getElementById('forecast-rows');
+  fRows.innerHTML = '';
+  ts.slice(1, 9).forEach(t => {
+    const h = new Date(t.time).getHours().toString().padStart(2,'0') + ':00';
+    const td = t.data.instant.details;
+    const sym = t.data.next_1_hours?.summary?.symbol_code || '';
+    const row = document.createElement('div');
+    row.className = 'forecast-row';
+    row.innerHTML = `<span class="forecast-time">${h}</span><span class="forecast-temp">${Math.round(td.air_temperature)}°</span><span class="forecast-wind">💨 ${Math.round(td.wind_speed)} m/s</span><span class="forecast-cond">${yrSymbolToDesc(sym)}</span>`;
+    fRows.appendChild(row);
+  });
+
+  hideWeatherLoading();
+  document.getElementById('weather-main').style.display = 'block';
+}
+
+// ── CHAT ──
+function chatKey(e) { if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function sendQuick(text) { document.getElementById('chat-input').value = text; sendMessage(); }
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  document.getElementById('chat-send').disabled = true;
+  appendMsg('user', text);
+
+  let weatherCtx = '';
+  if (lastWeatherData) {
+    const d = lastWeatherData.data.properties.timeseries[0].data.instant.details;
+    weatherCtx = `\n\nAktuelt vær for ${lastWeatherData.name}: ${Math.round(d.air_temperature)}°C, vind ${Math.round(d.wind_speed)} m/s, fuktighet ${Math.round(d.relative_humidity)}%.`;
+  }
+
+  const systemPrompt = currentLang === 'se'
+    ? `Don leat ViddaAssistent – AI veahkki boazoeaiggádiidda Finnmárkkus ja Romssas. Vástit davvisámegillii. Dieđát boazodoalu áigodatguohtumiin, siida-struktuvras ja norgga njuolggadusain. Atte oanehis gárvves raviid.${weatherCtx}\nMuttege nai čállit: "Dát leat AI-ráđit. Váldde oktavuođa guovlluveahkásdoaktáriiguin váivvasvuođa dihte. Soite 112 heahtes dihte."`
+    : `Du er ViddaAssistenten – en AI-hjelper for reineiere i Finnmark og Troms. Snakk naturlig norsk med nordnorsk tone. Du kjenner reindriftens årstidsbeiter, siida-struktur, snøforhold på vidda, rovdyrfare og norske regler fra Landbruksdirektoratet. Gi korte, praktiske råd.${weatherCtx}\nAvslutt ALLTID med: "Dette er AI-råd. Kontakt distriktsveterinær ved sykdom. Ring 112 ved nød."`;
+
+  chatHistory.push({ role: 'user', content: text });
+
+  const typingId = 'typing-' + Date.now();
+  const typingEl = document.createElement('div');
+  typingEl.className = 'msg'; typingEl.id = typingId;
+  typingEl.innerHTML = `<div class="msg-avatar ai">VA</div><div class="msg-bubble ai"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  document.getElementById('chat-messages').appendChild(typingEl);
+  scrollChat();
+
+  try {
+    const res = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system: systemPrompt, messages: chatHistory.slice(-10) })
+    });
+    const data = await res.json();
+    document.getElementById(typingId)?.remove();
+    if (!res.ok) { appendMsg('ai', '⚠ ' + (data.error || 'Feil fra server.')); }
+    else if (data.content?.[0]) {
+      const reply = data.content[0].text;
+      chatHistory.push({ role: 'assistant', content: reply });
+      appendMsg('ai', reply);
+    }
+  } catch(e) {
+    document.getElementById(typingId)?.remove();
+    appendMsg('ai', '⚠ Nettverksfeil. Sjekk at serveren kjører.');
+  }
+  document.getElementById('chat-send').disabled = false;
+  scrollChat();
+}
+
+function appendMsg(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `msg${role==='user'?' user':''}`;
+  const initials = role==='user' ? (currentUser?.name||'Deg').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : 'VA';
+  div.innerHTML = `<div class="msg-avatar ${role==='user'?'user-av':'ai'}">${initials}</div><div class="msg-bubble ${role==='user'?'user':'ai'}">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(div);
+  scrollChat();
+}
+function scrollChat() { const m = document.getElementById('chat-messages'); m.scrollTop = m.scrollHeight; }
+
+// ── TTS ──
+function toggleSpeak() {
+  const bubbles = document.querySelectorAll('#chat-messages .msg-bubble.ai');
+  if (!bubbles.length) return;
+  const lastText = bubbles[bubbles.length-1].textContent;
+  if (isSpeaking) { window.speechSynthesis.cancel(); isSpeaking = false; document.getElementById('speak-btn').classList.remove('speaking'); return; }
+  const u = new SpeechSynthesisUtterance(lastText);
+  u.lang = currentLang === 'se' ? 'se-NO' : 'nb-NO';
+  u.rate = 0.92;
+  u.onend = () => { isSpeaking = false; document.getElementById('speak-btn').classList.remove('speaking'); };
+  isSpeaking = true;
+  document.getElementById('speak-btn').classList.add('speaking');
+  window.speechSynthesis.speak(u);
+}
+
+// ── STRIPE ──
+async function startCheckout() {
+  try {
+    const res = await fetch(`${API}/api/create-checkout`, {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else toast('Kunne ikke starte betaling: ' + (data.error || 'ukjent feil'));
+  } catch(e) { toast('Betalingsfeil. Prøv igjen.'); }
+}
+
+// ── SETTINGS ──
+async function saveApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key) { toast('Skriv inn en API-nøkkel først'); return; }
+  try {
+    const res = await fetch(`${API}/api/apikey`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ claudeApiKey: key })
+    });
+    if (res.ok) { toast('API-nøkkel lagret! ✓'); document.getElementById('apikey-input').value = ''; }
+    else toast('Kunne ikke lagre nøkkel.');
+  } catch(e) { toast('Feil ved lagring.'); }
+}
+
+// ── MAP ──
+let map = null;
+let mapInited = false;
+let gpsTracking = false;
+let gpsWatchId = null;
+let userMarker = null;
+let userCircle = null;
+let weatherMarkers = [];
+
+const FINNMARK_BOUNDS = [[68.5, 20.0], [71.2, 31.0]];
+const WEATHER_POINTS = [
+  { name: 'Kautokeino', lat: 69.008, lon: 23.042 },
+  { name: 'Karasjok', lat: 69.474, lon: 25.509 },
+  { name: 'Lakselv', lat: 70.044, lon: 24.979 },
+  { name: 'Tana', lat: 70.195, lon: 28.183 },
+  { name: 'Vadsø', lat: 70.074, lon: 29.751 },
+  { name: 'Alta', lat: 69.969, lon: 23.271 },
+  { name: 'Hammerfest', lat: 70.663, lon: 23.682 },
+  { name: 'Porsanger', lat: 70.3, lon: 25.8 },
+  { name: 'Masi', lat: 69.43, lon: 23.65 },
+];
+
+// Reinbeitedistrikt grenser (forenklet GeoJSON-lignende polygoner)
+const BEITE_AREAS = [
+  { name: 'Kautokeino Østre', color: '#C17A2B', coords: [[69.2,22.5],[69.5,24.0],[69.0,24.5],[68.7,23.0],[69.2,22.5]] },
+  { name: 'Kautokeino Vestre', color: '#8B5E20', coords: [[69.2,22.5],[69.5,21.0],[69.8,22.0],[69.5,23.5],[69.2,22.5]] },
+  { name: 'Karasjok', color: '#A0722A', coords: [[69.3,24.5],[69.7,26.0],[69.2,26.5],[68.9,25.0],[69.3,24.5]] },
+];
+
+function initMap() {
+  if (mapInited) { map?.invalidateSize(); return; }
+  mapInited = true;
+
+  map = L.map('map', { zoomControl: true }).fitBounds(FINNMARK_BOUNDS);
+
+  // Topografisk bakgrunnskart (Kartverket)
+  L.tileLayer('https://opencache.statkart.no/gatekeeper/gk/gk.open_gmaps?layers=topo4&zoom={z}&x={x}&y={y}', {
+    attribution: '© Kartverket',
+    maxZoom: 15
+  }).addTo(map);
+
+  // Tegn reinbeitedistrikt
+  BEITE_AREAS.forEach(area => {
+    const poly = L.polygon(area.coords, {
+      color: area.color, weight: 2, opacity: 0.8,
+      fillColor: area.color, fillOpacity: 0.08
+    }).addTo(map);
+    poly.bindTooltip(area.name, { permanent: false, className: 'beite-tooltip' });
+  });
+
+  // Last inn vær for alle punkter
+  WEATHER_POINTS.forEach(p => loadWeatherMarker(p));
+}
+
+async function loadWeatherMarker(point) {
+  try {
+    const res = await fetch(`${API}/api/weather?lat=${point.lat}&lon=${point.lon}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const ts = data.properties.timeseries[0];
+    const d = ts.data.instant.details;
+    const temp = Math.round(d.air_temperature);
+    const wind = Math.round(d.wind_speed);
+    const humid = Math.round(d.relative_humidity);
+    const sym = ts.data.next_1_hours?.summary?.symbol_code || '';
+    const desc = yrSymbolToDesc(sym);
+    const isWindy = wind > 10;
+
+    // Custom icon med temperatur
+    const iconColor = temp < -10 ? '#378ADD' : temp < 0 ? '#8BA8A4' : temp < 10 ? '#4A5E45' : '#C17A2B';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:${isWindy?'#8B3A1C':iconColor};color:white;padding:4px 8px;font-family:Georgia,serif;font-size:13px;font-weight:700;border-radius:3px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.3)">${temp}°${isWindy?' ⚠':''}</div>`,
+      iconAnchor: [20, 10]
+    });
+
+    const marker = L.marker([point.lat, point.lon], { icon }).addTo(map);
+    marker.bindPopup(`
+      <div class="weather-popup">
+        <div class="weather-popup-loc">${point.name.toUpperCase()}</div>
+        <div class="weather-popup-temp">${temp}°</div>
+        <div class="weather-popup-desc">${desc}</div>
+        <div class="weather-popup-detail">💨 ${wind} m/s &nbsp;·&nbsp; 💧 ${humid}%</div>
+        ${isWindy ? '<div style="color:#8B3A1C;font-size:0.75rem;margin-top:0.4rem">⚠ Sterk vind – vurder flokkflytting</div>' : ''}
+      </div>`, { maxWidth: 200 }
+    );
+    weatherMarkers.push(marker);
+  } catch(e) { /* stille feil */ }
+}
+
+function toggleMapGPS() {
+  const btn = document.getElementById('map-gps-btn');
+  if (gpsTracking) {
+    if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+    gpsTracking = false;
+    btn.textContent = '📍 Spor GPS';
+    btn.classList.remove('tracking');
+    return;
+  }
+  if (!navigator.geolocation) { toast('GPS ikke tilgjengelig i denne nettleseren.'); return; }
+  gpsTracking = true;
+  btn.textContent = '⏹ Stopp sporing';
+  btn.classList.add('tracking');
+
+  gpsWatchId = navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    const acc = pos.coords.accuracy;
+
+    if (!mapInited) initMap();
+
+    if (userMarker) { userMarker.setLatLng([lat, lon]); userCircle.setLatLng([lat, lon]).setRadius(acc); }
+    else {
+      const youIcon = L.divIcon({
+        className: '',
+        html: '<div style="width:14px;height:14px;background:#4A5E45;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>',
+        iconAnchor: [7, 7]
+      });
+      userMarker = L.marker([lat, lon], { icon: youIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('Din posisjon');
+      userCircle = L.circle([lat, lon], { radius: acc, color: '#4A5E45', fillColor: '#4A5E45', fillOpacity: 0.08, weight: 1 }).addTo(map);
+      map.setView([lat, lon], 10);
+    }
+  }, err => {
+    toast('GPS-feil: ' + err.message);
+    gpsTracking = false;
+    btn.textContent = '📍 Spor GPS';
+    btn.classList.remove('tracking');
+  }, { enableHighAccuracy: true, maximumAge: 5000 });
+}
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+</body>
+</html>
